@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Environment } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Color } from 'three'
@@ -20,6 +20,13 @@ export default function EnvironmentSetup() {
   const { preset, customHdr, intensity, background, backgroundBlur, backgroundType, backgroundColor } =
     useEnvironmentStore()
   const { scene, gl } = useThree()
+  const [mounted, setMounted] = useState(false)
+
+  // Delay environment rendering to ensure Canvas is fully mounted
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Handle background color/transparency
   useEffect(() => {
@@ -35,8 +42,12 @@ export default function EnvironmentSetup() {
     }
   }, [backgroundType, backgroundColor, scene, gl])
 
+  // Wait for Canvas to fully mount before rendering Environment
+  if (!mounted) return null
+
   // Don't render environment background if using solid color or transparent
   if (backgroundType === 'solid' || backgroundType === 'transparent') {
+    if (!preset) return null
     return (
       <Environment
         preset={preset as EnvironmentPreset}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ModelsPanel from './ModelsPanel'
+import MeasurementsPanel from './MeasurementsPanel'
 import ScenePresetsPanel from './ScenePresetsPanel'
 import MaterialPanel from './MaterialPanel'
 import LightingPanel from './LightingPanel'
@@ -8,7 +9,7 @@ import RenderPanel from './RenderPanel'
 import ExportPanel from './ExportPanel'
 import styles from './Sidebar.module.css'
 
-type PanelId = 'models' | 'scenes' | 'materials' | 'lighting' | 'environment' | 'render' | 'export'
+type PanelId = 'models' | 'measurements' | 'scenes' | 'materials' | 'lighting' | 'environment' | 'render' | 'export'
 
 export default function Sidebar() {
   const [openPanels, setOpenPanels] = useState<Set<PanelId>>(
@@ -37,6 +38,15 @@ export default function Sidebar() {
           onToggle={() => togglePanel('models')}
         >
           <ModelsPanel />
+        </Panel>
+
+        <Panel
+          id="measurements"
+          title="Measurements"
+          isOpen={openPanels.has('measurements')}
+          onToggle={() => togglePanel('measurements')}
+        >
+          <MeasurementsPanel />
         </Panel>
 
         <Panel

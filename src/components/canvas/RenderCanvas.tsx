@@ -7,6 +7,7 @@ import CameraControls from './CameraControls'
 import LightingRig from './LightingRig'
 import PostProcessing from './PostProcessing'
 import DropZone from './DropZone'
+import MeasurementTool from './MeasurementTool'
 import { useRenderStore, useEnvironmentStore } from '@/store'
 
 export default function RenderCanvas() {
@@ -41,6 +42,7 @@ function SceneContent() {
       <EnvironmentSetup />
       <LightingRig />
       <ModelViewer />
+      <MeasurementTool />
       <CameraControls />
       <PostProcessing />
       <DropZone />
