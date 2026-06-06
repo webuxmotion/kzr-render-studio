@@ -6,6 +6,7 @@ export interface LoadedModel {
   gltf: GLTF
   url: string
   name: string
+  fileType?: 'gltf' | 'glb' | 'stl'
   position: [number, number, number]
   rotation: [number, number, number]
   scale: number

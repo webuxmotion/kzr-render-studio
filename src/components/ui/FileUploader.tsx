@@ -10,7 +10,7 @@ export default function FileUploader() {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    const validExtensions = ['.gltf', '.glb']
+    const validExtensions = ['.gltf', '.glb', '.stl']
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
@@ -18,7 +18,7 @@ export default function FileUploader() {
 
       if (!validExtensions.includes(ext)) {
         if (files.length === 1) {
-          setError('Please select a GLTF or GLB file')
+          setError('Please select a GLTF, GLB, or STL file')
         }
         continue
       }
@@ -32,6 +32,7 @@ export default function FileUploader() {
           gltf: null as never,
           url,
           name: file.name,
+          fileType: ext.slice(1) as 'gltf' | 'glb' | 'stl',
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load file')
@@ -50,7 +51,7 @@ export default function FileUploader() {
       <input
         ref={inputRef}
         type="file"
-        accept=".gltf,.glb"
+        accept=".gltf,.glb,.stl"
         onChange={handleFileSelect}
         className={styles.input}
         id="file-upload"

@@ -2,6 +2,7 @@ import { useEffect, useRef, useMemo } from 'react'
 import { useLoader, useThree } from '@react-three/fiber'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { useAnimations } from '@react-three/drei'
 import { Box3, Vector3, Mesh, MeshStandardMaterial, MeshPhysicalMaterial, Color, Group, PerspectiveCamera } from 'three'
 import { useSceneStore } from '@/store'
@@ -35,16 +36,27 @@ export default function ModelViewer() {
 
   return (
     <>
-      {models.map((model) => (
-        <Model
-          key={model.id}
-          modelData={model}
-          materials={materials}
-          setMaterials={setMaterials}
-          isSelected={model.id === selectedModelId}
-          isFirst={models[0].id === model.id}
-        />
-      ))}
+      {models.map((model) =>
+        model.fileType === 'stl' ? (
+          <STLModel
+            key={model.id}
+            modelData={model}
+            materials={materials}
+            setMaterials={setMaterials}
+            isSelected={model.id === selectedModelId}
+            isFirst={models[0].id === model.id}
+          />
+        ) : (
+          <Model
+            key={model.id}
+            modelData={model}
+            materials={materials}
+            setMaterials={setMaterials}
+            isSelected={model.id === selectedModelId}
+            isFirst={models[0].id === model.id}
+          />
+        )
+      )}
     </>
   )
 }
@@ -220,6 +232,109 @@ function Model({ modelData, materials, setMaterials, isSelected, isFirst }: Mode
       <group ref={groupRef}>
         <primitive object={gltf.scene} />
       </group>
+    </group>
+  )
+}
+
+function STLModel({ modelData, materials, setMaterials, isSelected, isFirst }: ModelProps) {
+  const { camera } = useThree()
+  const { setLoading, selectModel } = useSceneStore()
+
+  const geometry = useLoader(STLLoader, modelData.url)
+
+  const material = useMemo(
+    () => new MeshPhysicalMaterial({ color: '#cccccc', metalness: 0, roughness: 0.5 }),
+    []
+  )
+
+  const offsets = useMemo(() => {
+    geometry.computeBoundingBox()
+    const box = geometry.boundingBox!
+    return {
+      bottomY: box.min.y,
+      centerX: (box.max.x + box.min.x) / 2,
+      centerZ: (box.max.z + box.min.z) / 2,
+    }
+  }, [geometry])
+
+  useEffect(() => {
+    if (!isSelected) return
+    const color = `#${material.color.getHexString()}`
+    setMaterials([
+      {
+        id: material.uuid,
+        name: 'Material',
+        color,
+        metalness: material.metalness,
+        roughness: material.roughness,
+        envMapIntensity: material.envMapIntensity ?? 1,
+        emissive: `#${material.emissive.getHexString()}`,
+        emissiveIntensity: material.emissiveIntensity,
+        transparent: material.transparent,
+        opacity: material.opacity,
+        clearcoat: material.clearcoat,
+        clearcoatRoughness: material.clearcoatRoughness,
+        transmission: material.transmission,
+        ior: material.ior,
+      },
+    ])
+    setLoading(false)
+  }, [isSelected, material, setMaterials, setLoading])
+
+  useEffect(() => {
+    const override = materials.find((m) => m.id === material.uuid)
+    if (!override) return
+    material.color.set(override.color)
+    material.metalness = override.metalness
+    material.roughness = override.roughness
+    material.envMapIntensity = override.envMapIntensity
+    material.emissive.set(override.emissive)
+    material.emissiveIntensity = override.emissiveIntensity
+    material.transparent = override.transparent || override.transmission > 0
+    material.opacity = override.opacity
+    material.clearcoat = override.clearcoat
+    material.clearcoatRoughness = override.clearcoatRoughness
+    material.transmission = override.transmission
+    material.ior = override.ior
+    material.needsUpdate = true
+  }, [materials, material])
+
+  useEffect(() => {
+    if (!isFirst) return
+    geometry.computeBoundingBox()
+    const box = geometry.boundingBox!
+    const size = new Vector3()
+    box.getSize(size)
+    const height = size.y
+    const maxDim = Math.max(size.x, size.y, size.z)
+    const perspCamera = camera as PerspectiveCamera
+    const fov = perspCamera.fov * (Math.PI / 180)
+    let distance = maxDim / (2 * Math.tan(fov / 2))
+    distance *= 1.8
+    const lookAtPoint = new Vector3(0, height / 2, 0)
+    camera.position.set(distance * 0.6, height / 2 + distance * 0.3, distance)
+    camera.lookAt(lookAtPoint)
+    camera.updateProjectionMatrix()
+  }, [geometry, camera, isFirst])
+
+  const handleClick = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation()
+    selectModel(modelData.id)
+  }
+
+  return (
+    <group
+      position={[
+        modelData.position[0] - offsets.centerX,
+        modelData.position[1] - offsets.bottomY,
+        modelData.position[2] - offsets.centerZ,
+      ]}
+      rotation={modelData.rotation}
+      scale={modelData.scale}
+      visible={modelData.visible}
+      onClick={handleClick}
+    >
+      <mesh geometry={geometry} material={material} castShadow receiveShadow />
     </group>
   )
 }
